@@ -27,7 +27,7 @@ enum cube {
   SMALLWHITE // маленький белый куб
 };
 // важно: НУЖНО ИЗМЕНИТЬ
-const cube collectOrder[2] = {SMALLBLACK, BIGBLACK}; // массив порядка сбора кубиков ( определяется жеребьёвкой )
+const cube collectOrder[2] = {SMALLWHITE, BIGBLACK}; // массив порядка сбора кубиков ( определяется жеребьёвкой )
  
 int lap = 0; // текущий круг
  
@@ -50,9 +50,9 @@ const int blackCubeLimit = 512; // лимит после которого счи
  
 const int detectCubeLimit = 70; // значение с детектора кубика при котором считаем что кубик найден
  
-const int smallCubeLimit = 55; // порог значения с детектора кубика, после которого считаем, что кубик маленький
+const int smallCubeLimit = 52; // порог значения с детектора кубика, после которого считаем, что кубик маленький
  
-const int delayFor90Rotatiuon = 500; // задержка перед и после поворота на 90
+const int delayFor90Rotatiuon = 100; // задержка перед и после поворота на 90
  
 const byte stepBetweenSensorAndMotor = 80;//90; // шагов от датчиков линии до двигателей
  
@@ -66,7 +66,8 @@ unsigned long startMillisFromDetecting = 0;
  
 int millisDelayDetecting = 50; // миллисекунд задержки определения кубика
  
-const int stepperspeed = 70; // скорость шаговых моторов. НЕ УВЕЛИЧИВАТЬ
+const int stepperspeed = 80; // скорость шаговых моторов. НЕ УВЕЛИЧИВАТЬ
+const int stepperlessspeed = 60; // меньшая скорость шаговиков
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver();
  
 VL53L0X lox;
@@ -148,8 +149,8 @@ void move90Right(int steps, int forward, int afterstep = 0)
     rightMotor.step(1);
   }
   delay(delayFor90Rotatiuon);
-  leftMotor.setSpeed(50);
-  rightMotor.setSpeed(50);
+  leftMotor.setSpeed(stepperlessspeed);
+  rightMotor.setSpeed(stepperlessspeed);
   /*for (int x = 0; x < steps; x++) { // поворот на месте
     leftMotor.step(1);
     rightMotor.step(-1);
@@ -158,7 +159,7 @@ void move90Right(int steps, int forward, int afterstep = 0)
     leftMotor.step(1);
     rightMotor.step(-1);
   }
-  while (analogRead(A7) < blackLineLimit) {
+  while (analogRead(A1) < blackLineLimit) {
     leftMotor.step(1);
     rightMotor.step(-1);
   }
@@ -182,8 +183,8 @@ void move90Left(int steps, int forward, int afterstep = 0)
     leftMotor.step(1);
     rightMotor.step(1);
   }
-  leftMotor.setSpeed(50);
-  rightMotor.setSpeed(50);
+  leftMotor.setSpeed(stepperlessspeed);
+  rightMotor.setSpeed(stepperlessspeed);
   delay(delayFor90Rotatiuon);
  
   /*for (int x = 0; x < steps; x++) { // поворот на месте
@@ -194,7 +195,7 @@ void move90Left(int steps, int forward, int afterstep = 0)
     leftMotor.step(-1);
     rightMotor.step(1);
   }
-  while (analogRead(A1) < blackLineLimit){
+  while (analogRead(A7) < blackLineLimit){
     leftMotor.step(-1);
     rightMotor.step(1);
   }
@@ -213,11 +214,11 @@ void move90Left(int steps, int forward, int afterstep = 0)
 // выезд из базы
 void moveFromBase()
 {
-  for (int x = 0; x < 440; x++) { // выехать вперёд и на сколько
+  for (int x = 0; x < 470; x++) { // выехать вперёд и на сколько
     leftMotor.step(1);
     rightMotor.step(1);
   }
-  move90Left(stepFor90Rotation + 40, 0, 0); // повернуть налево
+  move90Left(stepFor90Rotation + 45, 0, 0); // повернуть налево
 }
  
 // затягивание кубиков
@@ -254,7 +255,7 @@ void pushingCube()
 // определение цвета кубика
 void cubeDetectingColor()
 {
-  lox.setMeasurementTimingBudget(200000); //делаем датчик более "точным"
+  lox.setMeasurementTimingBudget(500000); //делаем датчик более "точным"
   int colorCube = analogRead(A6); //считываем значения датчика линии
   int distanceCube = lox.readRangeSingleMillimeters(); // переменная дистанции до кубика в миллиметрах
   if (!lox.timeoutOccurred())
@@ -267,7 +268,7 @@ void cubeDetectingColor()
   Serial.println(colorCube);
   Serial.print("distanceCube: ");
   Serial.println(distanceCube);
-  if (colorCube > blackCubeLimit && distanceCube < smallCubeLimit) // большой чёрный кубик
+  if (colorCube > blackCubeLimit && distanceCube < smallCubeLimit + 3) // большой чёрный кубик
   {
     // сейчас собираем большые черные кубики, и есть у нас место?
     if (collectOrder[curCollect] == BIGBLACK && countPulledCube < 2)
@@ -285,7 +286,7 @@ void cubeDetectingColor()
  
     Serial.println("big black cube");
   }
-  else if (colorCube > blackCubeLimit && distanceCube > smallCubeLimit) // маленький чёрный кубик
+  else if (colorCube > blackCubeLimit && distanceCube >= smallCubeLimit + 3) // маленький чёрный кубик
   {
     // кубик черный, берем или нет?
     if (collectOrder[curCollect] == SMALLBLACK && countPulledCube < 2)
@@ -322,7 +323,7 @@ void cubeDetectingColor()
     Serial.println("big white cube");
   }
  
-  else if (colorCube < blackCubeLimit && distanceCube > smallCubeLimit) // маленький белый кубик
+  else if (colorCube < blackCubeLimit && distanceCube >= smallCubeLimit) // маленький белый кубик
   {
     // кубик черный, берем или нет?
     if (collectOrder[curCollect] == SMALLWHITE && countPulledCube < 2)
@@ -346,7 +347,7 @@ void cubeDetectingColor()
 // определение кубика
 void cubeDetecting()
 {
-  if (startMillisFromDetecting == 0)
+  if (startMillisFromDetecting == 0 && (lap == 0 || countPulledCube < 2))
   {
     int cubeDistance; // переменная дистанции до кубика в миллиметрах
     if (!lox.timeoutOccurred())
@@ -420,9 +421,9 @@ void loop() {
     if (countPulledCube > 0) // если есть затянутые кубики
     {
       //delay(1000);
-      leftMotor.setSpeed(50);
-      rightMotor.setSpeed(50);
-      move90Right(stepFor90Rotation, stepBetweenSensorAndMotor, 10); // поворачиваемся направо
+      leftMotor.setSpeed(stepperlessspeed);
+      rightMotor.setSpeed(stepperlessspeed);
+      move90Right(stepFor90Rotation, stepBetweenSensorAndMotor, 35); // поворачиваемся направо
      
       for (int x = 0; x < 380; x++) { // едем вперёд
         leftMotor.step(1);
@@ -433,7 +434,7 @@ void loop() {
         leftMotor.step(-1);
         rightMotor.step(-1);
       }
-      move90Left(stepFor90Rotation, 0, -30); // поворачиваемся налево
+      move90Left(stepFor90Rotation, 0, 10); // поворачиваемся налево
       for (int x = 0; x < stepBetweenSensorAndMotor / 2; x++) { // едем вперёд
         leftMotor.step(1);
         rightMotor.step(1);
@@ -493,7 +494,7 @@ void loop() {
       {
         if (outerRight > blackLineLimit and turns > 0) {
           // прямой угол правый
-          move90Right(stepFor90Rotation, stepBetweenSensorAndMotor, -20);
+          move90Right(stepFor90Rotation, stepBetweenSensorAndMotor, 10);
           turns -= 1;
         }
         else
