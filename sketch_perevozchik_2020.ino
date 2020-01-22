@@ -120,7 +120,7 @@ void servoPullRelease()
 // затягивание. отпускание вниз затягивающего сервопривода
 void servoPullPulling()
 {
-  pwm.setPWM(SERVO_PULL, 0, pulseWidth(55));
+  pwm.setPWM(SERVO_PULL, 0, pulseWidth(53));
 }
 
 // отпускание вниз выталкивающего сервопривода
